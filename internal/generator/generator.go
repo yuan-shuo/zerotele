@@ -15,138 +15,132 @@ import (
 	tmplpkg "github.com/yuan-shuo/zerotele/internal/template"
 )
 
-// Options 包含代码生成选项
-type Options struct {
+// MetricsOptions 包含指标代码生成选项
+type MetricsOptions struct {
 	OutputDir string
 }
 
 // Generator 负责生成代码
 type Generator struct {
-	logTmpl *template.Template
-	metTmpl *template.Template
+	metricsTmpl *template.Template
+	logTmpl     *template.Template
 }
 
 // New 创建一个新的生成器
 func New() (*Generator, error) {
-	logTmpl, err := template.New("logfields").Funcs(tmplpkg.FuncMap()).Parse(tmplpkg.LogFieldsTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("parsing logfields template: %w", err)
-	}
-
-	metTmpl, err := template.New("metrics").Funcs(tmplpkg.FuncMap()).Parse(tmplpkg.MetricsTemplate)
+	// 解析指标模板
+	metricsTmpl, err := template.New("metrics").Funcs(tmplpkg.FuncMap()).Parse(tmplpkg.MetricsTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("parsing metrics template: %w", err)
 	}
 
+	// 解析日志模板
+	logTmpl, err := template.New("logfields").Funcs(tmplpkg.LogFuncMap()).Parse(tmplpkg.LogFieldsTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("parsing logfields template: %w", err)
+	}
+
 	return &Generator{
-		logTmpl: logTmpl,
-		metTmpl: metTmpl,
+		metricsTmpl: metricsTmpl,
+		logTmpl:     logTmpl,
 	}, nil
 }
 
-// GenerateLogFields 生成日志字段代码
-func (g *Generator) GenerateLogFields(fields []config.LogFieldConfig, opts Options) error {
-	data := struct {
-		Fields      []config.LogFieldConfig
-		PackageName string
-	}{
-		Fields:      fields,
-		PackageName: getPackageName(opts.OutputDir),
-	}
-
-	var buf bytes.Buffer
-	if err := g.logTmpl.Execute(&buf, data); err != nil {
-		return fmt.Errorf("executing logfields template: %w", err)
-	}
-
-	formatted, err := format.Source(buf.Bytes())
-	if err != nil {
-		return fmt.Errorf("formatting logfields code: %w\nRaw output:\n%s", err, buf.String())
-	}
-
-	if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {
-		return fmt.Errorf("creating output directory %s: %w", opts.OutputDir, err)
-	}
-
-	outputPath := filepath.Join(opts.OutputDir, "logfields_gen.go")
-	if err := os.WriteFile(outputPath, formatted, 0644); err != nil {
-		return fmt.Errorf("writing logfields file %s: %w", outputPath, err)
-	}
-
-	return nil
-}
-
-// GenerateMetrics 生成指标代码
-func (g *Generator) GenerateMetrics(service string, metrics []config.MetricConfig, opts Options) error {
+// GenerateMetrics 根据配置生成指标代码文件
+func (g *Generator) GenerateMetrics(cfg *config.TeleConfig, opts MetricsOptions) error {
+	// 准备模板数据
 	data := struct {
 		Service     string
 		Metrics     []config.MetricConfig
 		PackageName string
 	}{
-		Service:     service,
-		Metrics:     metrics,
+		Service:     cfg.Service,
+		Metrics:     cfg.Metrics,
 		PackageName: getPackageName(opts.OutputDir),
 	}
 
+	// 执行模板
 	var buf bytes.Buffer
-	if err := g.metTmpl.Execute(&buf, data); err != nil {
+	if err := g.metricsTmpl.Execute(&buf, data); err != nil {
 		return fmt.Errorf("executing metrics template: %w", err)
 	}
 
+	// 格式化代码
 	formatted, err := format.Source(buf.Bytes())
 	if err != nil {
-		return fmt.Errorf("formatting metrics code: %w\nRaw output:\n%s", err, buf.String())
+		return fmt.Errorf("formatting code: %w\nRaw output:\n%s", err, buf.String())
 	}
 
+	// 确保输出目录存在
 	if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {
 		return fmt.Errorf("creating output directory %s: %w", opts.OutputDir, err)
 	}
 
+	// 写入文件
 	outputPath := filepath.Join(opts.OutputDir, "metrics_gen.go")
 	if err := os.WriteFile(outputPath, formatted, 0644); err != nil {
-		return fmt.Errorf("writing metrics file %s: %w", outputPath, err)
+		return fmt.Errorf("writing file %s: %w", outputPath, err)
+	}
+
+	return nil
+}
+
+// LogOptions 包含日志字段代码生成选项
+type LogOptions struct {
+	OutputDir string
+}
+
+// GenerateLogFields 根据配置生成日志字段代码文件
+func (g *Generator) GenerateLogFields(cfg *config.TeleConfig, opts LogOptions) error {
+	// 准备模板数据
+	data := struct {
+		Service     string
+		LogFields   []config.LogFieldConfig
+		PackageName string
+	}{
+		Service:     cfg.Service,
+		LogFields:   cfg.LogFields,
+		PackageName: getPackageName(opts.OutputDir),
+	}
+
+	// 执行模板
+	var buf bytes.Buffer
+	if err := g.logTmpl.Execute(&buf, data); err != nil {
+		return fmt.Errorf("executing logfields template: %w", err)
+	}
+
+	// 格式化代码
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("formatting code: %w\nRaw output:\n%s", err, buf.String())
+	}
+
+	// 确保输出目录存在
+	if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {
+		return fmt.Errorf("creating output directory %s: %w", opts.OutputDir, err)
+	}
+
+	// 写入文件
+	outputPath := filepath.Join(opts.OutputDir, "logfields_gen.go")
+	if err := os.WriteFile(outputPath, formatted, 0644); err != nil {
+		return fmt.Errorf("writing file %s: %w", outputPath, err)
 	}
 
 	return nil
 }
 
 // getPackageName 从输出目录路径提取包名
+// 例如: "aaa/aaa/bbb" -> "bbb", "." -> "metrics"
 func getPackageName(outputDir string) string {
+	// 统一使用 / 作为分隔符处理
 	normalized := strings.ReplaceAll(outputDir, "\\", "/")
 	cleanPath := path.Clean(normalized)
 	base := path.Base(cleanPath)
 
+	// 如果路径是 "." 或 "/" 等，使用默认包名
 	if base == "." || base == "/" || base == "" {
-		return "main"
-	}
-
-	// 检查是否是有效的 Go 标识符
-	if !isValidGoIdentifier(base) {
-		return "main"
+		return "metrics"
 	}
 
 	return base
-}
-
-// isValidGoIdentifier 检查字符串是否是有效的 Go 标识符
-func isValidGoIdentifier(s string) bool {
-	if s == "" {
-		return false
-	}
-
-	// 第一个字符必须是字母或下划线
-	c := s[0]
-	if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
-		return false
-	}
-
-	// 其余字符可以是字母、数字或下划线
-	for i := 1; i < len(s); i++ {
-		c = s[i]
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
-			return false
-		}
-	}
-
-	return true
 }

@@ -66,10 +66,10 @@ func RunMetrics(opts *MetricOptions) error {
 	}
 
 	// 生成指标代码
-	genOpts := generator.Options{
+	genOpts := generator.MetricsOptions{
 		OutputDir: opts.OutputDir,
 	}
-	if err := gen.GenerateMetrics(cfg.Service, cfg.Metrics, genOpts); err != nil {
+	if err := gen.GenerateMetrics(cfg, genOpts); err != nil {
 		return fmt.Errorf("generating metrics code: %w", err)
 	}
 

@@ -74,10 +74,10 @@ func RunLogFields(opts *LogFieldOptions) error {
 	}
 
 	// 生成日志字段代码
-	genOpts := generator.Options{
+	genOpts := generator.LogOptions{
 		OutputDir: opts.OutputDir,
 	}
-	if err := gen.GenerateLogFields(cfg.LogFields, genOpts); err != nil {
+	if err := gen.GenerateLogFields(cfg, genOpts); err != nil {
 		return fmt.Errorf("generating logfields code: %w", err)
 	}
 

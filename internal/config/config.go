@@ -38,9 +38,9 @@ var validTypes = map[string]bool{
 
 // TeleConfig 表示统一的 YAML 配置根结构
 type TeleConfig struct {
-	Service   string           `yaml:"service"`
+	Service   string          `yaml:"service"`
 	LogFields []LogFieldConfig `yaml:"logfields"`
-	Metrics   []MetricConfig   `yaml:"metrics"`
+	Metrics   []MetricConfig  `yaml:"metrics"`
 }
 
 // LogFieldConfig 表示日志字段配置
@@ -53,18 +53,27 @@ type LogFieldConfig struct {
 
 // MetricConfig 表示指标配置
 type MetricConfig struct {
-	Name    string        `yaml:"name"`
-	Help    string        `yaml:"help"`
-	Type    string        `yaml:"type"` // counter, gauge, histogram
-	Labels  []LabelConfig `yaml:"labels"`
-	Methods []string      `yaml:"methods"`
-	Buckets []float64     `yaml:"buckets,omitempty"` // 仅 histogram 使用
+	Name    string   `yaml:"name"`
+	Help    string   `yaml:"help"`
+	Type    string   `yaml:"type"` // counter, gauge, histogram
+	Labels  []Label  `yaml:"labels"`
+	Methods []string `yaml:"methods"`
+	Buckets []float64 `yaml:"buckets,omitempty"` // 仅 histogram 使用
 }
 
-// LabelConfig 表示标签配置
-type LabelConfig struct {
+// Label 表示指标标签
+type Label struct {
 	Name string   `yaml:"name"`
 	Vals []string `yaml:"vals"`
+}
+
+// GetLabelNames 返回标签名称列表
+func (m *MetricConfig) GetLabelNames() []string {
+	names := make([]string, len(m.Labels))
+	for i, l := range m.Labels {
+		names[i] = l.Name
+	}
+	return names
 }
 
 // Load 从指定路径加载 YAML 配置文件
@@ -163,7 +172,7 @@ func (m MetricConfig) Validate() error {
 }
 
 // Validate 校验标签配置
-func (l LabelConfig) Validate() error {
+func (l Label) Validate() error {
 	if strings.TrimSpace(l.Name) == "" {
 		return fmt.Errorf("label name is required")
 	}
@@ -187,6 +196,15 @@ func ToPascal(s string) string {
 	return strings.Join(parts, "")
 }
 
+// ToCamel 将 snake_case 转换为 camelCase（首字母小写）
+func ToCamel(s string) string {
+	pascal := ToPascal(s)
+	if len(pascal) > 0 {
+		return strings.ToLower(pascal[:1]) + pascal[1:]
+	}
+	return pascal
+}
+
 // GetFieldPascalName 获取日志字段的 PascalCase 名称
 func (f LogFieldConfig) GetFieldPascalName() string {
 	return ToPascal(f.Name)
@@ -197,28 +215,15 @@ func (m MetricConfig) GetMetricPascalName() string {
 	return ToPascal(m.Name)
 }
 
-// GetLabelPascalName 获取标签的 PascalCase 名称
-func (l LabelConfig) GetLabelPascalName() string {
-	return ToPascal(l.Name)
-}
-
-// IsLabelDynamic 判断标签是否为动态值（vals 包含 "*"）
-func (l LabelConfig) IsLabelDynamic() bool {
+// IsEnum 检查标签值是否是枚举（不是通配符 *）
+func (l Label) IsEnum() bool {
+	if len(l.Vals) == 0 {
+		return false
+	}
 	for _, v := range l.Vals {
 		if v == "*" {
-			return true
+			return false
 		}
 	}
-	return false
-}
-
-// GetLabelValues 获取标签的所有可能值（过滤掉 "*"）
-func (l LabelConfig) GetLabelValues() []string {
-	var vals []string
-	for _, v := range l.Vals {
-		if v != "*" {
-			vals = append(vals, v)
-		}
-	}
-	return vals
+	return true
 }
