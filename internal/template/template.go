@@ -129,7 +129,7 @@ func (m *{{ $metricName }}Metric) Dec({{ $metric.Labels | labelParams }}) {
 {{- if eq $method "observe" }}
 
 // Observe 观察直方图值
-func (m *{{ $metricName }}Metric) Observe(v float64, {{ $metric.Labels | labelParams }}) {
+func (m *{{ $metricName }}Metric) Observe(v int64, {{ $metric.Labels | labelParams }}) {
 	m.vec.Observe(v, {{ $metric.Labels | labelArgs }})
 }
 {{- end }}
