@@ -4,6 +4,7 @@ package maskgen
 import (
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"os"
@@ -33,10 +34,14 @@ func (g *Generator) Generate(maskFilePath string, fields []config.LogFieldConfig
 	}
 
 	// 检查 mask 文件是否已存在
+	isNewFile := false
 	existingFuncs := make(map[string]bool)
 	var existingContent string
 
-	if _, err := os.Stat(maskFilePath); err == nil {
+	if _, err := os.Stat(maskFilePath); err != nil {
+		// 文件不存在，标记为新文件
+		isNewFile = true
+	} else {
 		content, funcs, err := g.parseExistingMaskFile(maskFilePath)
 		if err != nil {
 			return fmt.Errorf("parsing existing mask file: %w", err)
@@ -59,14 +64,21 @@ func (g *Generator) Generate(maskFilePath string, fields []config.LogFieldConfig
 	}
 
 	// 生成新的 mask 函数代码
-	newCode := g.generateMaskCode(newFields, existingContent == "")
+	newCode := g.generateMaskCode(newFields, isNewFile)
 
 	// 写入文件
-	if existingContent == "" {
-		if err := os.WriteFile(maskFilePath, []byte(newCode), 0644); err != nil {
+	if isNewFile {
+		// 新文件：生成完整代码并进行 gofmt 格式化
+		formatted, err := format.Source([]byte(newCode))
+		if err != nil {
+			// 格式化失败，使用原始代码
+			formatted = []byte(newCode)
+		}
+		if err := os.WriteFile(maskFilePath, formatted, 0644); err != nil {
 			return fmt.Errorf("writing mask file: %w", err)
 		}
 	} else {
+		// 已有文件：直接追加新代码，不进行格式化
 		existingContent = strings.TrimRight(existingContent, "\n")
 		fullContent := existingContent + "\n\n" + newCode + "\n"
 		if err := os.WriteFile(maskFilePath, []byte(fullContent), 0644); err != nil {
@@ -128,9 +140,9 @@ func (g *Generator) generateMaskCode(fields []config.LogFieldConfig, isNewFile b
 		paramName := strings.ToLower(field.GetFieldPascalName())
 
 		sb.WriteString(fmt.Sprintf("// %s 对%s进行脱敏\n", funcName, field.Comment))
-		sb.WriteString(fmt.Sprintf("// 请在此实现具体的脱敏逻辑\n"))
+		sb.WriteString("// 请在此实现具体的脱敏逻辑\n")
 		sb.WriteString(fmt.Sprintf("func %s(%s %s) any {\n", funcName, paramName, field.Type))
-		sb.WriteString(fmt.Sprintf("\t// TODO: 实现脱敏逻辑\n"))
+		sb.WriteString("\t// TODO: 实现脱敏逻辑\n")
 		sb.WriteString(fmt.Sprintf("\treturn %s\n", paramName))
 		sb.WriteString("}")
 	}
