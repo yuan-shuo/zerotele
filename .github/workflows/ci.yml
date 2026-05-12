@@ -30,8 +30,7 @@ jobs:
 
       - name: Run tests
         run: |
-          go test -v -coverprofile=coverage.out \
-          ./cmd/... ./internal/...
+          go test -v -coverprofile=coverage.out ./cmd/... ./internal/...
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
