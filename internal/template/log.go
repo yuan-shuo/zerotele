@@ -49,8 +49,8 @@ func (v {{ .GetFieldPascalName }}) MaskSensitive() any {
 // LogFuncMap 返回日志字段模板函数映射
 func LogFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"toPascal":  config.ToPascal,
-		"toLower":   strings.ToLower,
-		"toCamel":   config.ToCamel,
+		"toPascal": config.ToPascal,
+		"toLower":  strings.ToLower,
+		"toCamel":  config.ToCamel,
 	}
 }

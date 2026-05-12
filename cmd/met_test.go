@@ -7,11 +7,11 @@ import (
 
 func TestParseMetricFlags(t *testing.T) {
 	tests := []struct {
-		name      string
-		args      []string
-		wantErr   bool
-		wantYaml  string
-		wantDir   string
+		name     string
+		args     []string
+		wantErr  bool
+		wantYaml string
+		wantDir  string
 	}{
 		{
 			name:     "valid args",
