@@ -29,6 +29,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "check":
+		if err := runCheck(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "version", "-v", "--version":
 		fmt.Printf("zerotele version %s\n", version)
 	case "help", "-h", "--help":
@@ -56,6 +61,14 @@ func runMetrics(args []string) error {
 	return cmd.RunMetrics(opts)
 }
 
+func runCheck(args []string) error {
+	opts, err := cmd.ParseCheckFlags(args)
+	if err != nil {
+		return err
+	}
+	return cmd.RunCheck(opts)
+}
+
 func printUsage() {
 	fmt.Println(`zerotele - 统一的日志字段和指标代码生成工具
 
@@ -63,8 +76,9 @@ func printUsage() {
   zerotele <command> [options] <yaml-file>
 
 命令:
-  lf    生成日志字段代码
-  met   生成指标代码
+  lf     生成日志字段代码
+  met    生成指标代码
+  check  校验 YAML 配置文件
 
 日志字段命令 (lf):
   zerotele lf [options] <yaml-file>
@@ -85,6 +99,12 @@ func printUsage() {
   
   示例:
     zerotele met zerotele.yaml -d ./internal/metrics
+
+校验命令 (check):
+  zerotele check <yaml-file>
+
+  示例:
+    zerotele check zerotele.yaml
 
 其他命令:
   version, -v, --version   显示版本信息

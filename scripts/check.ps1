@@ -1,0 +1,1 @@
+go run main.go check ./testoutput/zerotele.example.yaml

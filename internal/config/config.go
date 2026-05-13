@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -96,93 +97,139 @@ func Load(path string) (*TeleConfig, error) {
 	return &cfg, nil
 }
 
-// Validate 校验配置是否合法
+// Validate 校验配置是否合法，收集所有错误后一次性返回
 func (c *TeleConfig) Validate() error {
+	var errs []error
+
 	// 校验 service 名称
 	if strings.TrimSpace(c.Service) == "" {
-		return fmt.Errorf("service name is required")
-	}
-	if !snakeCaseRegex.MatchString(c.Service) {
-		return fmt.Errorf("service name '%s' must be valid snake_case format", c.Service)
+		errs = append(errs, fmt.Errorf("service name is required"))
+	} else if !snakeCaseRegex.MatchString(c.Service) {
+		errs = append(errs, fmt.Errorf("service name '%s' must be valid snake_case format", c.Service))
 	}
 
 	// 校验日志字段
 	for i, f := range c.LogFields {
-		if err := f.Validate(); err != nil {
-			return fmt.Errorf("logfield[%d]: %w", i, err)
+		if fieldErrs := f.ValidateAll(); len(fieldErrs) > 0 {
+			for _, err := range fieldErrs {
+				errs = append(errs, fmt.Errorf("logfield[%d]: %w", i, err))
+			}
 		}
 	}
 
 	// 校验指标
 	for i, m := range c.Metrics {
-		if err := m.Validate(); err != nil {
-			return fmt.Errorf("metric[%d]: %w", i, err)
+		if metricErrs := m.ValidateAll(); len(metricErrs) > 0 {
+			for _, err := range metricErrs {
+				errs = append(errs, fmt.Errorf("metric[%d]: %w", i, err))
+			}
 		}
 	}
 
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
 	return nil
 }
 
-// Validate 校验日志字段配置
+// Validate 校验日志字段配置（保持向后兼容）
 func (f LogFieldConfig) Validate() error {
-	if strings.TrimSpace(f.Name) == "" {
-		return fmt.Errorf("field name is required")
-	}
-	if !snakeCaseRegex.MatchString(f.Name) {
-		return fmt.Errorf("field name '%s' must be valid snake_case format", f.Name)
-	}
-	if strings.TrimSpace(f.Type) == "" {
-		return fmt.Errorf("field '%s': type is required", f.Name)
-	}
-	if !validTypes[f.Type] {
-		return fmt.Errorf("field '%s': invalid type '%s'", f.Name, f.Type)
+	errs := f.ValidateAll()
+	if len(errs) > 0 {
+		return errs[0]
 	}
 	return nil
 }
 
-// Validate 校验指标配置
-func (m MetricConfig) Validate() error {
-	if strings.TrimSpace(m.Name) == "" {
-		return fmt.Errorf("metric name is required")
-	}
-	if !snakeCaseRegex.MatchString(m.Name) {
-		return fmt.Errorf("metric name '%s' must be valid snake_case format", m.Name)
-	}
-	if strings.TrimSpace(m.Help) == "" {
-		return fmt.Errorf("metric '%s': help is required", m.Name)
-	}
-	if m.Type != "counter" && m.Type != "gauge" && m.Type != "histogram" {
-		return fmt.Errorf("metric '%s': invalid type '%s', must be counter/gauge/histogram", m.Name, m.Type)
-	}
-	if m.Type == "histogram" && len(m.Buckets) == 0 {
-		return fmt.Errorf("metric '%s': histogram requires buckets", m.Name)
-	}
-	if len(m.Methods) == 0 {
-		return fmt.Errorf("metric '%s': methods are required", m.Name)
-	}
+// ValidateAll 校验日志字段配置，返回所有错误
+func (f LogFieldConfig) ValidateAll() []error {
+	var errs []error
 
-	// 校验标签
-	for i, l := range m.Labels {
-		if err := l.Validate(); err != nil {
-			return fmt.Errorf("label[%d]: %w", i, err)
+	if strings.TrimSpace(f.Name) == "" {
+		errs = append(errs, fmt.Errorf("field name is required"))
+	} else {
+		if !snakeCaseRegex.MatchString(f.Name) {
+			errs = append(errs, fmt.Errorf("field name '%s' must be valid snake_case format", f.Name))
+		}
+		if strings.TrimSpace(f.Type) == "" {
+			errs = append(errs, fmt.Errorf("field '%s': type is required", f.Name))
+		} else if !validTypes[f.Type] {
+			errs = append(errs, fmt.Errorf("field '%s': invalid type '%s'", f.Name, f.Type))
 		}
 	}
 
+	return errs
+}
+
+// Validate 校验指标配置（保持向后兼容）
+func (m MetricConfig) Validate() error {
+	errs := m.ValidateAll()
+	if len(errs) > 0 {
+		return errs[0]
+	}
 	return nil
 }
 
-// Validate 校验标签配置
+// ValidateAll 校验指标配置，返回所有错误
+func (m MetricConfig) ValidateAll() []error {
+	var errs []error
+
+	if strings.TrimSpace(m.Name) == "" {
+		errs = append(errs, fmt.Errorf("metric name is required"))
+	} else {
+		if !snakeCaseRegex.MatchString(m.Name) {
+			errs = append(errs, fmt.Errorf("metric name '%s' must be valid snake_case format", m.Name))
+		}
+		if strings.TrimSpace(m.Help) == "" {
+			errs = append(errs, fmt.Errorf("metric '%s': help is required", m.Name))
+		}
+		if m.Type != "counter" && m.Type != "gauge" && m.Type != "histogram" {
+			errs = append(errs, fmt.Errorf("metric '%s': invalid type '%s', must be counter/gauge/histogram", m.Name, m.Type))
+		} else if m.Type == "histogram" && len(m.Buckets) == 0 {
+			errs = append(errs, fmt.Errorf("metric '%s': histogram requires buckets", m.Name))
+		}
+		if len(m.Methods) == 0 {
+			errs = append(errs, fmt.Errorf("metric '%s': methods are required", m.Name))
+		}
+
+		// 校验标签
+		for i, l := range m.Labels {
+			if labelErrs := l.ValidateAll(); len(labelErrs) > 0 {
+				for _, err := range labelErrs {
+					errs = append(errs, fmt.Errorf("label[%d]: %w", i, err))
+				}
+			}
+		}
+	}
+
+	return errs
+}
+
+// Validate 校验标签配置（保持向后兼容）
 func (l Label) Validate() error {
-	if strings.TrimSpace(l.Name) == "" {
-		return fmt.Errorf("label name is required")
-	}
-	if !snakeCaseRegex.MatchString(l.Name) {
-		return fmt.Errorf("label name '%s' must be valid snake_case format", l.Name)
-	}
-	if len(l.Vals) == 0 {
-		return fmt.Errorf("label '%s': vals are required", l.Name)
+	errs := l.ValidateAll()
+	if len(errs) > 0 {
+		return errs[0]
 	}
 	return nil
+}
+
+// ValidateAll 校验标签配置，返回所有错误
+func (l Label) ValidateAll() []error {
+	var errs []error
+
+	if strings.TrimSpace(l.Name) == "" {
+		errs = append(errs, fmt.Errorf("label name is required"))
+	} else {
+		if !snakeCaseRegex.MatchString(l.Name) {
+			errs = append(errs, fmt.Errorf("label name '%s' must be valid snake_case format", l.Name))
+		}
+		if len(l.Vals) == 0 {
+			errs = append(errs, fmt.Errorf("label '%s': vals are required", l.Name))
+		}
+	}
+
+	return errs
 }
 
 // ToPascal 将 snake_case 转换为 PascalCase
