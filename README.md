@@ -35,22 +35,29 @@ go build -o zerotele .
 
 ## 指令集
 
+### zerotele check
+用于校验 YAML 配置文件是否符合规范，一次性输出所有校验错误及错误总数
+```bash
+# 校验 zerotele.yaml 文件
+zerotele check zerotele.yaml
+```
+
 ### zerotele lf
 用于省略 gozero 日志统一字段及重复的脱敏创建操作
-```go
-// 在 ./internal/logger 目录下生成日志字段代码
+```bash
+# 在 ./internal/logger 目录下生成日志字段代码
 zerotele lf zerotele.yaml -d ./internal/logger
-// 在 ./logger 目录下生成日志字段代码 (更全面)
-// 并自动补全 ./internal/logger/mask.go 的脱敏函数存根
-// 若不存在 mask.go 会自行在 -d 指定的目录创建
+# 在 ./logger 目录下生成日志字段代码 (更全面)
+# 并自动补全 ./internal/logger/mask.go 的脱敏函数存根
+# 若不存在 mask.go 会自行在 -d 指定的目录创建
 zerotele lf zerotele.yaml -d ./internal/logger -m mask.go
 ```
 
 
 ### zerotele met
 用于封装 gozero 的指标功能，使其满足类型安全和基数控制
-```go
-// 在 ./internal/metrics 目录下生成类型安全指标器代码
+```bash
+# 在 ./internal/metrics 目录下生成类型安全指标器代码
 zerotele met zerotele.yaml -d ./internal/metrics
 ```
 
