@@ -15,6 +15,7 @@ type LogFieldOptions struct {
 	YamlFile  string
 	OutputDir string
 	MaskFile  string
+	Version   string
 }
 
 // ParseLogFieldFlags 解析日志字段子命令参数
@@ -76,6 +77,7 @@ func RunLogFields(opts *LogFieldOptions) error {
 	// 生成日志字段代码
 	genOpts := generator.LogOptions{
 		OutputDir: opts.OutputDir,
+		Version:   opts.Version,
 	}
 	if err := gen.GenerateLogFields(cfg, genOpts); err != nil {
 		return fmt.Errorf("generating logfields code: %w", err)

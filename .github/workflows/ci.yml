@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -31,6 +33,11 @@ jobs:
       - name: Run tests
         run: |
           go test -v -coverprofile=coverage.out ./cmd/... ./internal/...
+
+      - name: Check version
+        shell: pwsh
+        run: |
+          ./scripts/version-check.ps1
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5

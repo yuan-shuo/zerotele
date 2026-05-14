@@ -12,6 +12,7 @@ import (
 type MetricOptions struct {
 	YamlFile  string
 	OutputDir string
+	Version   string
 }
 
 // ParseMetricFlags 解析指标子命令参数
@@ -68,6 +69,7 @@ func RunMetrics(opts *MetricOptions) error {
 	// 生成指标代码
 	genOpts := generator.MetricsOptions{
 		OutputDir: opts.OutputDir,
+		Version:   opts.Version,
 	}
 	if err := gen.GenerateMetrics(cfg, genOpts); err != nil {
 		return fmt.Errorf("generating metrics code: %w", err)

@@ -35,6 +35,7 @@ func TestLogFieldsTemplate(t *testing.T) {
 		Service     string
 		LogFields   []config.LogFieldConfig
 		PackageName string
+		Version     string
 	}{
 		Service: "user",
 		LogFields: []config.LogFieldConfig{
@@ -42,6 +43,7 @@ func TestLogFieldsTemplate(t *testing.T) {
 			{Name: "user_name", Type: "string", Comment: "用户名", Mask: false},
 		},
 		PackageName: "logger",
+		Version:     "0.1.0",
 	}
 
 	var buf strings.Builder
@@ -83,12 +85,14 @@ func TestLogFieldsTemplateWithoutMask(t *testing.T) {
 		Service     string
 		LogFields   []config.LogFieldConfig
 		PackageName string
+		Version     string
 	}{
 		Service: "user",
 		LogFields: []config.LogFieldConfig{
 			{Name: "request_id", Type: "string", Comment: "请求ID", Mask: false},
 		},
 		PackageName: "logger",
+		Version:     "0.1.0",
 	}
 
 	var buf strings.Builder
@@ -114,10 +118,12 @@ func TestLogFieldsTemplateEmptyFields(t *testing.T) {
 		Service     string
 		LogFields   []config.LogFieldConfig
 		PackageName string
+		Version     string
 	}{
 		Service:     "user",
 		LogFields:   []config.LogFieldConfig{},
 		PackageName: "logger",
+		Version:     "0.1.0",
 	}
 
 	var buf strings.Builder

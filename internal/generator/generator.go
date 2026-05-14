@@ -18,6 +18,7 @@ import (
 // MetricsOptions 包含指标代码生成选项
 type MetricsOptions struct {
 	OutputDir string
+	Version   string
 }
 
 // Generator 负责生成代码
@@ -53,10 +54,12 @@ func (g *Generator) GenerateMetrics(cfg *config.TeleConfig, opts MetricsOptions)
 		Service     string
 		Metrics     []config.MetricConfig
 		PackageName string
+		Version     string
 	}{
 		Service:     cfg.Service,
 		Metrics:     cfg.Metrics,
 		PackageName: getPackageName(opts.OutputDir),
+		Version:     opts.Version,
 	}
 
 	// 执行模板
@@ -88,6 +91,7 @@ func (g *Generator) GenerateMetrics(cfg *config.TeleConfig, opts MetricsOptions)
 // LogOptions 包含日志字段代码生成选项
 type LogOptions struct {
 	OutputDir string
+	Version   string
 }
 
 // GenerateLogFields 根据配置生成日志字段代码文件
@@ -97,10 +101,12 @@ func (g *Generator) GenerateLogFields(cfg *config.TeleConfig, opts LogOptions) e
 		Service     string
 		LogFields   []config.LogFieldConfig
 		PackageName string
+		Version     string
 	}{
 		Service:     cfg.Service,
 		LogFields:   cfg.LogFields,
 		PackageName: getPackageName(opts.OutputDir),
+		Version:     opts.Version,
 	}
 
 	// 执行模板

@@ -215,6 +215,7 @@ func TestMetricsTemplate(t *testing.T) {
 		Service     string
 		Metrics     []config.MetricConfig
 		PackageName string
+		Version     string
 	}{
 		Service: "user",
 		Metrics: []config.MetricConfig{
@@ -230,6 +231,7 @@ func TestMetricsTemplate(t *testing.T) {
 			},
 		},
 		PackageName: "metrics",
+		Version:     "0.1.0",
 	}
 
 	var buf strings.Builder

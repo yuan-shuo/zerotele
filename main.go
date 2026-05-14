@@ -2,13 +2,33 @@
 package main
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/yuan-shuo/zerotele/cmd"
 )
 
-const version = "0.1.0"
+//go:embed version.json
+var versionJSON []byte
+
+var version string
+
+func init() {
+	var v struct {
+		Version string `json:"version"`
+		Suffix  string `json:"suffix"`
+	}
+	if err := json.Unmarshal(versionJSON, &v); err != nil {
+		version = "unknown"
+	} else {
+		version = v.Version
+		if v.Suffix != "" {
+			version = version + "-" + v.Suffix
+		}
+	}
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -50,6 +70,7 @@ func runLogFields(args []string) error {
 	if err != nil {
 		return err
 	}
+	opts.Version = version
 	return cmd.RunLogFields(opts)
 }
 
@@ -58,6 +79,7 @@ func runMetrics(args []string) error {
 	if err != nil {
 		return err
 	}
+	opts.Version = version
 	return cmd.RunMetrics(opts)
 }
 

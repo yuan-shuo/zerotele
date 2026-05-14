@@ -20,6 +20,11 @@ jobs:
         with:
           go-version: stable
 
+      - name: Check version
+        shell: pwsh
+        run: |
+          ./scripts/version-check.ps1
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
